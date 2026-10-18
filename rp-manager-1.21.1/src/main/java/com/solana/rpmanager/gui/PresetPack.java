@@ -48,14 +48,13 @@ public class PresetPack implements ResourcePackOrganizer.Pack {
 
     @Override
     public Text getDisplayName() {
-        return Text.literal("✦ ").formatted(Formatting.GOLD)
-                .append(Text.literal(preset.getName()).formatted(Formatting.YELLOW, Formatting.BOLD));
+        return Text.literal("✦ " + preset.getName()).formatted(Formatting.GOLD, Formatting.BOLD);
     }
 
     @Override
     public Text getDescription() {
         int count = preset.getPacks() != null ? preset.getPacks().size() : 0;
-        return Text.literal("Заготовка • Паков: " + count + "\nНажмите для применения").formatted(Formatting.AQUA);
+        return Text.literal("Preset (" + count + " packs) • Click to apply").formatted(Formatting.AQUA);
     }
 
     @Override
@@ -166,16 +165,23 @@ public class PresetPack implements ResourcePackOrganizer.Pack {
         organizer.refresh();
         triggerScreenUpdate();
 
-        // 6. If there were missing packs, show a warning toast
-        if (!missingPacks.isEmpty()) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.getToastManager() != null) {
+        // 6. Show toast notification
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client != null && client.getToastManager() != null) {
+            if (!missingPacks.isEmpty()) {
                 String missingNames = String.join(", ", missingPacks);
                 SystemToast.show(
                         client.getToastManager(),
                         SystemToast.Type.PACK_LOAD_FAILURE,
-                        Text.literal("Не найдены ресурспаки!").formatted(Formatting.RED, Formatting.BOLD),
+                        Text.literal("Missing Resource Packs!").formatted(Formatting.RED, Formatting.BOLD),
                         Text.literal(missingNames).formatted(Formatting.GRAY)
+                );
+            } else {
+                SystemToast.show(
+                        client.getToastManager(),
+                        SystemToast.Type.PACK_LOAD_FAILURE,
+                        Text.literal("Preset Applied!").formatted(Formatting.GREEN, Formatting.BOLD),
+                        Text.literal(preset.getName() + " (" + (preset.getPacks() != null ? preset.getPacks().size() : 0) + " packs)").formatted(Formatting.WHITE)
                 );
             }
         }

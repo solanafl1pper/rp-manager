@@ -27,20 +27,20 @@ public abstract class PackScreenMixin extends Screen {
     @Inject(method = "init", at = @At("TAIL"))
     private void rpmanager$addButtons(CallbackInfo ci) {
         int centerX = this.width / 2;
-        int buttonY = this.height - 24;
+        int buttonY = 22;
 
         this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("✦ Создать заготовку").formatted(Formatting.GOLD),
+                Text.literal("✦ Presets").formatted(Formatting.GOLD),
                 button -> {
                     if (this.client != null) {
                         this.client.setScreen(new CreatePresetScreen((PackScreen)(Object)this, this.organizer));
                     }
                 }
-        ).dimensions(centerX - 154, buttonY, 150, 20).build());
+        ).dimensions(centerX - 205, buttonY, 95, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(
-                Text.literal("Папка заготовок").formatted(Formatting.AQUA),
+                Text.literal("📁 Folder").formatted(Formatting.AQUA),
                 button -> Util.getOperatingSystem().open(PresetManager.getInstance().getPresetsDir().toFile())
-        ).dimensions(centerX + 4, buttonY, 150, 20).build());
+        ).dimensions(centerX + 110, buttonY, 95, 20).build());
     }
 }
