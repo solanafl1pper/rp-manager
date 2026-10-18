@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+bin/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Fabric Loom
+.loom/
+.fabric/
+run/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
