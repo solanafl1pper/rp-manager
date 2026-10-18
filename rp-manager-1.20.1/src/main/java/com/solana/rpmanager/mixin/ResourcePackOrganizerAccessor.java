@@ -18,7 +18,4 @@ public interface ResourcePackOrganizerAccessor {
 
     @Accessor("resourcePackManager")
     ResourcePackManager getResourcePackManager();
-
-    @Accessor("updateCallback")
-    Runnable getUpdateCallback();
 }
