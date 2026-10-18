@@ -1,0 +1,59 @@
+name: Publish to CurseForge
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build Mod Jars
+        run: ./gradlew build
+
+      - name: Publish to CurseForge (1.21.x / 26.3)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: 1752997
+          files: rp-manager-1.21.1/build/libs/rp-manager-fabric-1.21.1-*.jar
+          name: RP Manager ${{ github.ref_name }} (1.21.x / 26.3)
+          version-type: release
+          loaders: fabric
+          game-versions: |
+            1.21
+            1.21.1
+            1.21.2
+            1.21.3
+            1.21.4
+            1.21.11
+            26.3
+
+      - name: Publish to CurseForge (1.20.x)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: 1752997
+          files: rp-manager-1.20.1/build/libs/rp-manager-fabric-1.20.1-*.jar
+          name: RP Manager ${{ github.ref_name }} (1.20.x)
+          version-type: release
+          loaders: fabric
+          game-versions: |
+            1.20
+            1.20.1
+            1.20.2
+            1.20.3
+            1.20.4
+            1.20.6
