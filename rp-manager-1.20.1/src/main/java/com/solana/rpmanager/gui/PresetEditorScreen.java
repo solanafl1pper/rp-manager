@@ -12,6 +12,7 @@ import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import com.solana.rpmanager.util.IconRenderHelper;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -384,7 +385,7 @@ public class PresetEditorScreen extends Screen {
 
                 // 1. Draw Pack Icon (24x24)
                 if (entry.iconId != null) {
-                    context.drawTexture(entry.iconId, centerX - 142, rowY + 3, 0.0F, 0.0F, 24, 24, 24, 24);
+                    IconRenderHelper.drawPackIcon(context, entry.iconId, centerX - 142, rowY + 3, 24, 24);
                 }
 
                 // 2. Display Name + Status badge
