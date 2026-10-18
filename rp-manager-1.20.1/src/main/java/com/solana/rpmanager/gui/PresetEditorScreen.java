@@ -1,6 +1,5 @@
 package com.solana.rpmanager.gui;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.solana.rpmanager.manager.PresetManager;
 import com.solana.rpmanager.model.Preset;
 import net.minecraft.client.MinecraftClient;
@@ -385,7 +384,6 @@ public class PresetEditorScreen extends Screen {
 
                 // 1. Draw Pack Icon (24x24)
                 if (entry.iconId != null) {
-                    RenderSystem.enableBlend();
                     context.drawTexture(entry.iconId, centerX - 142, rowY + 3, 0.0F, 0.0F, 24, 24, 24, 24);
                 }
 
