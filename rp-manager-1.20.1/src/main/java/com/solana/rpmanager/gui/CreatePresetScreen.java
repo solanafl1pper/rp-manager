@@ -107,6 +107,9 @@ public class CreatePresetScreen extends Screen {
     public void close() {
         if (this.client != null) {
             this.client.setScreen(this.parent);
+            if (this.parent != null) {
+                this.parent.init(this.client, this.parent.width, this.parent.height);
+            }
         }
     }
 
@@ -131,8 +134,8 @@ public class CreatePresetScreen extends Screen {
         List<Preset> presets = PresetManager.getInstance().getPresets();
         int listStartY = 85;
         if (!presets.isEmpty()) {
-            context.drawTextWithShadow(
-                    this.textRenderer,
+            drawLeftAlignedText(
+                    context,
                     Text.literal("Сохранённые заготовки:").formatted(Formatting.YELLOW),
                     centerX - 150,
                     listStartY - 12,
@@ -146,8 +149,8 @@ public class CreatePresetScreen extends Screen {
 
                 context.fill(centerX - 150, rowY, centerX + 120, rowY + 20, 0x66000000);
 
-                context.drawTextWithShadow(
-                        this.textRenderer,
+                drawLeftAlignedText(
+                        context,
                         Text.literal("✦ " + preset.getName()).formatted(Formatting.WHITE),
                         centerX - 144,
                         rowY + 6,
@@ -155,8 +158,8 @@ public class CreatePresetScreen extends Screen {
                 );
 
                 int count = preset.getPacks() != null ? preset.getPacks().size() : 0;
-                context.drawTextWithShadow(
-                        this.textRenderer,
+                drawLeftAlignedText(
+                        context,
                         Text.literal(count + " пак.").formatted(Formatting.AQUA),
                         centerX + 70,
                         rowY + 6,
@@ -166,5 +169,10 @@ public class CreatePresetScreen extends Screen {
         }
 
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    private void drawLeftAlignedText(DrawContext context, Text text, int x, int y, int color) {
+        int width = this.textRenderer.getWidth(text);
+        context.drawCenteredTextWithShadow(this.textRenderer, text, x + width / 2, y, color);
     }
 }

@@ -164,6 +164,7 @@ public class PresetPack implements ResourcePackOrganizer.Pack {
 
         // 5. Trigger refresh callback to update the screen lists
         organizer.refresh();
+        triggerScreenUpdate();
 
         // 6. If there were missing packs, show a warning toast
         if (!missingPacks.isEmpty()) {
@@ -177,6 +178,27 @@ public class PresetPack implements ResourcePackOrganizer.Pack {
                         Text.literal(missingNames).formatted(Formatting.GRAY)
                 );
             }
+        }
+    }
+
+    private void triggerScreenUpdate() {
+        try {
+            for (java.lang.reflect.Field f : ResourcePackOrganizer.class.getDeclaredFields()) {
+                f.setAccessible(true);
+                Object val = f.get(organizer);
+                if (val instanceof Runnable r) {
+                    r.run();
+                    return;
+                } else if (val instanceof java.util.function.Consumer c) {
+                    c.accept(null);
+                    return;
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client != null && client.currentScreen != null) {
+            client.currentScreen.init(client, client.currentScreen.width, client.currentScreen.height);
         }
     }
 }
