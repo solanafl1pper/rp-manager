@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "rpmanager",
+  "version": "${version}",
+  "name": "Resource Pack Manager",
+  "description": "Create, manage, and instantly apply resource pack presets right inside Minecraft!",
+  "authors": [
+    "solana"
+  ],
+  "contact": {
+    "repo": "https://github.com/solanafl1pper/rp-manager"
+  },
+  "license": "MIT",
+  "icon": "assets/rpmanager/textures/gui/preset_icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.solana.rpmanager.RPManager"
+    ]
+  },
+  "mixins": [
+    "rpmanager.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21",
+    "fabric-api": "*"
+  }
+}
