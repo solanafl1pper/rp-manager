@@ -113,7 +113,7 @@ public class CreatePresetScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
+        context.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
 
         int centerX = this.width / 2;
 
