@@ -8,7 +8,6 @@ import net.minecraft.client.gui.screen.pack.PackScreen;
 import net.minecraft.client.gui.screen.pack.ResourcePackOrganizer;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
@@ -22,6 +21,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PackScreen.class)
 public abstract class PackScreenMixin extends Screen {
     @Shadow @Final private ResourcePackOrganizer organizer;
+    @Shadow private ButtonWidget doneButton;
+
+    private ButtonWidget rpmanager$presetsButton;
+    private ButtonWidget rpmanager$folderButton;
 
     protected PackScreenMixin(Text title) {
         super(title);
@@ -29,44 +32,6 @@ public abstract class PackScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void rpmanager$addButtons(CallbackInfo ci) {
-        // Find vanilla bottom buttons (Pack folder and Done)
-        ClickableWidget openFolderWidget = null;
-        ClickableWidget doneWidget = null;
-
-        for (Element child : this.children()) {
-            if (child instanceof ClickableWidget widget) {
-                if (widget.getY() >= this.height - 56) {
-                    if (widget.getX() < this.width / 2) {
-                        if (openFolderWidget == null || widget.getY() > openFolderWidget.getY()) {
-                            openFolderWidget = widget;
-                        }
-                    } else {
-                        if (doneWidget == null || widget.getY() > doneWidget.getY()) {
-                            doneWidget = widget;
-                        }
-                    }
-                }
-            }
-        }
-
-        int btnY = openFolderWidget != null ? openFolderWidget.getY() : (this.height - 48);
-        int openFolderX = openFolderWidget != null ? openFolderWidget.getX() : (this.width / 2 - 154);
-
-        int presetsX;
-        int folderX;
-
-        if (openFolderX >= 48) {
-            presetsX = openFolderX - 48;
-            folderX = openFolderX - 24;
-        } else if (doneWidget != null && (doneWidget.getX() + doneWidget.getWidth() + 48) <= this.width) {
-            int doneRight = doneWidget.getX() + doneWidget.getWidth();
-            presetsX = doneRight + 4;
-            folderX = doneRight + 28;
-        } else {
-            presetsX = this.width / 2 - 198;
-            folderX = this.width / 2 - 174;
-        }
-
         boolean isRu = false;
         try {
             if (this.client != null && this.client.getLanguageManager() != null) {
@@ -80,22 +45,89 @@ public abstract class PackScreenMixin extends Screen {
         Text presetsTooltip = Text.literal(isRu ? "Пресеты" : "Presets");
         Text folderTooltip = Text.literal(isRu ? "Папка с пресетами" : "Presets Folder");
 
-        this.addDrawableChild(ButtonWidget.builder(
+        this.rpmanager$presetsButton = ButtonWidget.builder(
                 Text.literal("✦").formatted(Formatting.GOLD),
                 button -> {
                     if (this.client != null) {
                         this.client.setScreen(new CreatePresetScreen((PackScreen)(Object)this, this.organizer));
                     }
                 }
-        ).dimensions(presetsX, btnY, 20, 20)
+        ).dimensions(0, 0, 20, 20)
          .tooltip(Tooltip.of(presetsTooltip))
-         .build());
+         .build();
 
-        this.addDrawableChild(ButtonWidget.builder(
+        this.rpmanager$folderButton = ButtonWidget.builder(
                 Text.literal("📁").formatted(Formatting.AQUA),
                 button -> Util.getOperatingSystem().open(PresetManager.getInstance().getPresetsDir().toFile())
-        ).dimensions(folderX, btnY, 20, 20)
+        ).dimensions(0, 0, 20, 20)
          .tooltip(Tooltip.of(folderTooltip))
-         .build());
+         .build();
+
+        this.addDrawableChild(this.rpmanager$presetsButton);
+        this.addDrawableChild(this.rpmanager$folderButton);
+
+        rpmanager$updateButtonPositions();
+    }
+
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void rpmanager$onTick(CallbackInfo ci) {
+        rpmanager$updateButtonPositions();
+    }
+
+    private void rpmanager$updateButtonPositions() {
+        if (this.rpmanager$presetsButton == null || this.rpmanager$folderButton == null) return;
+
+        ButtonWidget openFolderButton = null;
+
+        if (this.doneButton != null) {
+            int doneY = this.doneButton.getY();
+            for (Element child : this.children()) {
+                if (child instanceof ButtonWidget button && button != this.doneButton) {
+                    if (button != this.rpmanager$presetsButton && button != this.rpmanager$folderButton) {
+                        // Find the button on the same horizontal row to the left of doneButton
+                        if (Math.abs(button.getY() - doneY) <= 4 && button.getX() < this.doneButton.getX()) {
+                            if (openFolderButton == null || button.getX() > openFolderButton.getX()) {
+                                openFolderButton = button;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        int btnY;
+        int openFolderX;
+
+        if (openFolderButton != null) {
+            btnY = openFolderButton.getY();
+            openFolderX = openFolderButton.getX();
+        } else if (this.doneButton != null) {
+            btnY = this.doneButton.getY();
+            openFolderX = this.doneButton.getX() - 8 - 150;
+        } else {
+            btnY = this.height - 36;
+            openFolderX = (this.width / 2) - 154;
+        }
+
+        int presetsX;
+        int folderX;
+
+        if (openFolderX >= 48) {
+            presetsX = openFolderX - 48;
+            folderX = openFolderX - 24;
+        } else if (this.doneButton != null && (this.doneButton.getX() + this.doneButton.getWidth() + 48) <= this.width) {
+            int doneRight = this.doneButton.getX() + this.doneButton.getWidth();
+            presetsX = doneRight + 4;
+            folderX = doneRight + 28;
+        } else {
+            presetsX = openFolderX - 24;
+            folderX = openFolderX - 48;
+        }
+
+        this.rpmanager$presetsButton.setX(presetsX);
+        this.rpmanager$presetsButton.setY(btnY);
+        this.rpmanager$folderButton.setX(folderX);
+        this.rpmanager$folderButton.setY(btnY);
     }
 }
