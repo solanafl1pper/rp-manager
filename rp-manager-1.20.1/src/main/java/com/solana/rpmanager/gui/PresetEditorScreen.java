@@ -11,7 +11,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -22,6 +21,13 @@ import java.util.Set;
 
 public class PresetEditorScreen extends Screen {
     private static final int PACKS_PER_PAGE = 5;
+
+    private static final int COLOR_WHITE = 0xFFFFFFFF;
+    private static final int COLOR_GOLD = 0xFFFFAA00;
+    private static final int COLOR_YELLOW = 0xFFFFFF55;
+    private static final int COLOR_GRAY = 0xFFAAAAAA;
+    private static final int COLOR_DARK_GRAY = 0xFF777777;
+    private static final int COLOR_AQUA = 0xFF55FFFF;
 
     private final Screen parent;
     private final ResourcePackOrganizer organizer;
@@ -74,7 +80,7 @@ public class PresetEditorScreen extends Screen {
         int centerX = this.width / 2;
 
         // Top Row: Preset Name + Search packs
-        String initialName = nameField != null ? nameField.getText() : (presetToEdit != null ? presetToEdit.getName() : "");
+        String initialName = nameField != null ? nameField.getText() : (presetToEdit != null ? presetToEdit.getName() : "Preset " + (PresetManager.getInstance().getPresets().size() + 1));
         this.nameField = new TextFieldWidget(
                 this.textRenderer,
                 centerX - 170,
@@ -85,7 +91,7 @@ public class PresetEditorScreen extends Screen {
         );
         this.nameField.setMaxLength(40);
         this.nameField.setText(initialName);
-        this.nameField.setPlaceholder(Text.literal("Preset name...").formatted(Formatting.DARK_GRAY));
+        this.nameField.setPlaceholder(Text.literal("Preset name...").formatted(Formatting.GRAY));
         this.nameField.setChangedListener(text -> updateSaveButtonState());
         this.addDrawableChild(this.nameField);
 
@@ -99,19 +105,13 @@ public class PresetEditorScreen extends Screen {
         );
         this.searchField.setMaxLength(50);
         this.searchField.setText(currentSearch);
-        this.searchField.setPlaceholder(Text.literal("Search packs...").formatted(Formatting.DARK_GRAY));
+        this.searchField.setPlaceholder(Text.literal("Search packs...").formatted(Formatting.GRAY));
         this.searchField.setChangedListener(text -> {
             currentSearch = text.trim().toLowerCase();
             page = 0;
             this.clearAndInit();
         });
         this.addDrawableChild(this.searchField);
-
-        if (initialName.isEmpty()) {
-            this.setInitialFocus(this.nameField);
-        } else {
-            this.setInitialFocus(this.searchField);
-        }
 
         // Action Buttons: [Select Active] and [Clear All]
         ButtonWidget selectActiveBtn = ButtonWidget.builder(
@@ -120,7 +120,7 @@ public class PresetEditorScreen extends Screen {
                     selectedPackIds.addAll(activePackIds);
                     this.clearAndInit();
                 }
-        ).dimensions(centerX + 30, 58, 85, 18).build();
+        ).dimensions(centerX + 25, 58, 90, 18).build();
         this.addDrawableChild(selectActiveBtn);
 
         ButtonWidget clearBtn = ButtonWidget.builder(
@@ -149,9 +149,9 @@ public class PresetEditorScreen extends Screen {
             String packId = profile.getName();
             boolean isSelected = selectedPackIds.contains(packId);
 
-            // Checkbox button [✓] or [ ]
+            // Checkbox button [✓] or [+]
             ButtonWidget toggleBtn = ButtonWidget.builder(
-                    Text.literal(isSelected ? "✓" : " ").formatted(isSelected ? Formatting.GREEN : Formatting.GRAY),
+                    Text.literal(isSelected ? "✓" : "+").formatted(isSelected ? Formatting.GREEN : Formatting.GRAY),
                     button -> {
                         if (selectedPackIds.contains(packId)) {
                             selectedPackIds.remove(packId);
@@ -160,7 +160,7 @@ public class PresetEditorScreen extends Screen {
                         }
                         this.clearAndInit();
                     }
-            ).dimensions(centerX - 170, rowY + 5, 24, 20).build();
+            ).dimensions(centerX - 168, rowY + 5, 22, 20).build();
             this.addDrawableChild(toggleBtn);
         }
 
@@ -194,7 +194,7 @@ public class PresetEditorScreen extends Screen {
         this.addDrawableChild(this.saveButton);
 
         ButtonWidget cancelButton = ButtonWidget.builder(
-                ScreenTexts.CANCEL,
+                Text.literal("Cancel"),
                 button -> close()
         ).dimensions(centerX + 5, this.height - 28, 105, 20).build();
         this.addDrawableChild(cancelButton);
@@ -253,8 +253,33 @@ public class PresetEditorScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
+        this.renderBackground(context);
+        renderCardBackgrounds(context, mouseX, mouseY);
+        super.render(context, mouseX, mouseY, delta);
+        renderContent(context, mouseX, mouseY);
+    }
 
+    private void renderCardBackgrounds(DrawContext context, int mouseX, int mouseY) {
+        int centerX = this.width / 2;
+        List<ResourcePackProfile> filtered = getFilteredProfiles();
+        int startIndex = page * PACKS_PER_PAGE;
+        int endIndex = Math.min(startIndex + PACKS_PER_PAGE, filtered.size());
+        int listStartY = 80;
+
+        for (int i = startIndex; i < endIndex; i++) {
+            ResourcePackProfile profile = filtered.get(i);
+            int slot = i - startIndex;
+            int rowY = listStartY + slot * 32;
+            String packId = profile.getName();
+            boolean isSelected = selectedPackIds.contains(packId);
+
+            boolean isHovered = mouseX >= centerX - 170 && mouseX <= centerX + 170 && mouseY >= rowY && mouseY <= rowY + 30;
+            int bgColor = isSelected ? (isHovered ? 0x771B4B1B : 0x55143414) : (isHovered ? 0x66333333 : 0x44000000);
+            context.fill(centerX - 170, rowY, centerX + 170, rowY + 30, bgColor);
+        }
+    }
+
+    private void renderContent(DrawContext context, int mouseX, int mouseY) {
         int centerX = this.width / 2;
 
         // Title
@@ -262,8 +287,8 @@ public class PresetEditorScreen extends Screen {
                 this.textRenderer,
                 this.title.copy().formatted(Formatting.GOLD, Formatting.BOLD),
                 centerX,
-                10,
-                0xFFFFFF
+                12,
+                COLOR_GOLD
         );
 
         // Counter text at top
@@ -273,10 +298,10 @@ public class PresetEditorScreen extends Screen {
                 Text.literal(counterText).formatted(Formatting.YELLOW, Formatting.BOLD),
                 centerX - 168,
                 62,
-                0xFFFFFF
+                COLOR_YELLOW
         );
 
-        // Packs list
+        // Packs list text
         List<ResourcePackProfile> filtered = getFilteredProfiles();
         int totalPages = Math.max(1, (int) Math.ceil((double) filtered.size() / PACKS_PER_PAGE));
         int listStartY = 80;
@@ -287,7 +312,7 @@ public class PresetEditorScreen extends Screen {
                     Text.literal("No matching resource packs found.").formatted(Formatting.GRAY),
                     centerX,
                     listStartY + 40,
-                    0x888888
+                    COLOR_GRAY
             );
         } else {
             int startIndex = page * PACKS_PER_PAGE;
@@ -301,33 +326,26 @@ public class PresetEditorScreen extends Screen {
                 boolean isSelected = selectedPackIds.contains(packId);
                 boolean isActive = activePackIds.contains(packId);
 
-                // Card background
-                boolean isHovered = mouseX >= centerX - 170 && mouseX <= centerX + 170 && mouseY >= rowY && mouseY <= rowY + 30;
-                int bgColor = isSelected ? (isHovered ? 0x66225522 : 0x44113311) : (isHovered ? 0x66333333 : 0x44000000);
-                context.fill(centerX - 170, rowY, centerX + 170, rowY + 30, bgColor);
-
                 // Display name + Status badge
                 String statusBadge = isActive ? " [Active]" : " [Available]";
                 Formatting badgeColor = isActive ? Formatting.AQUA : Formatting.DARK_GRAY;
 
                 Text titleText = profile.getDisplayName().copy().formatted(isSelected ? Formatting.WHITE : Formatting.GRAY)
                         .append(Text.literal(statusBadge).formatted(badgeColor));
-                drawLeftAlignedText(context, titleText, centerX - 140, rowY + 4, 0xFFFFFF);
+                drawLeftAlignedText(context, titleText, centerX - 140, rowY + 4, COLOR_WHITE);
 
                 // Clean filename preview
                 String cleanedId = cleanPackId(packId);
-                drawLeftAlignedText(context, Text.literal(cleanedId).formatted(Formatting.DARK_GRAY), centerX - 140, rowY + 16, 0x888888);
+                drawLeftAlignedText(context, Text.literal(cleanedId).formatted(Formatting.DARK_GRAY), centerX - 140, rowY + 16, COLOR_DARK_GRAY);
             }
 
             // Pagination indicator
             if (totalPages > 1) {
                 int navY = listStartY + PACKS_PER_PAGE * 32 + 2;
                 String pageText = (page + 1) + " / " + totalPages;
-                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(pageText).formatted(Formatting.WHITE), centerX - 12, navY + 4, 0xFFFFFF);
+                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(pageText).formatted(Formatting.WHITE), centerX - 12, navY + 4, COLOR_WHITE);
             }
         }
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     private String cleanPackId(String id) {

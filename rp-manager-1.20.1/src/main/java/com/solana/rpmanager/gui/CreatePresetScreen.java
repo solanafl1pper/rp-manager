@@ -3,7 +3,6 @@ package com.solana.rpmanager.gui;
 import com.solana.rpmanager.manager.PresetManager;
 import com.solana.rpmanager.mixin.ResourcePackOrganizerAccessor;
 import com.solana.rpmanager.model.Preset;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.pack.PackScreen;
@@ -11,7 +10,6 @@ import net.minecraft.client.gui.screen.pack.ResourcePackOrganizer;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Util;
@@ -21,6 +19,13 @@ import java.util.List;
 
 public class CreatePresetScreen extends Screen {
     private static final int ITEMS_PER_PAGE = 4;
+
+    private static final int COLOR_WHITE = 0xFFFFFFFF;
+    private static final int COLOR_GOLD = 0xFFFFAA00;
+    private static final int COLOR_YELLOW = 0xFFFFFF55;
+    private static final int COLOR_GRAY = 0xFFAAAAAA;
+    private static final int COLOR_DARK_GRAY = 0xFF777777;
+    private static final int COLOR_AQUA = 0xFF55FFFF;
 
     private final PackScreen parent;
     private final ResourcePackOrganizer organizer;
@@ -68,7 +73,7 @@ public class CreatePresetScreen extends Screen {
                 Text.literal("Quick Name")
         );
         this.quickNameField.setMaxLength(30);
-        this.quickNameField.setPlaceholder(Text.literal("Quick name...").formatted(Formatting.DARK_GRAY));
+        this.quickNameField.setPlaceholder(Text.literal("Quick name...").formatted(Formatting.GRAY));
         this.quickNameField.setChangedListener(text -> updateQuickSaveState());
         this.addDrawableChild(this.quickNameField);
 
@@ -153,7 +158,7 @@ public class CreatePresetScreen extends Screen {
         this.addDrawableChild(folderButton);
 
         ButtonWidget backButton = ButtonWidget.builder(
-                ScreenTexts.DONE,
+                Text.literal("Done"),
                 button -> close()
         ).dimensions(centerX + 4, this.height - 28, 150, 20).build();
         this.addDrawableChild(backButton);
@@ -196,8 +201,30 @@ public class CreatePresetScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
+        this.renderBackground(context);
+        renderCardBackgrounds(context, mouseX, mouseY);
+        super.render(context, mouseX, mouseY, delta);
+        renderContent(context, mouseX, mouseY);
+    }
 
+    private void renderCardBackgrounds(DrawContext context, int mouseX, int mouseY) {
+        int centerX = this.width / 2;
+        List<Preset> presets = PresetManager.getInstance().getPresets();
+        int startIndex = page * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, presets.size());
+        int listStartY = 84;
+
+        for (int i = startIndex; i < endIndex; i++) {
+            int slot = i - startIndex;
+            int rowY = listStartY + slot * 34;
+
+            boolean isHovered = mouseX >= centerX - 170 && mouseX <= centerX + 170 && mouseY >= rowY && mouseY <= rowY + 30;
+            int bgColor = isHovered ? 0x77333333 : 0x55000000;
+            context.fill(centerX - 170, rowY, centerX + 170, rowY + 30, bgColor);
+        }
+    }
+
+    private void renderContent(DrawContext context, int mouseX, int mouseY) {
         int centerX = this.width / 2;
 
         // Title
@@ -205,8 +232,8 @@ public class CreatePresetScreen extends Screen {
                 this.textRenderer,
                 this.title.copy().formatted(Formatting.GOLD, Formatting.BOLD),
                 centerX,
-                10,
-                0xFFFFFF
+                12,
+                COLOR_GOLD
         );
 
         // Section header for existing presets
@@ -219,7 +246,7 @@ public class CreatePresetScreen extends Screen {
                 Text.literal("Saved Presets (" + presets.size() + "):").formatted(Formatting.YELLOW, Formatting.BOLD),
                 centerX - 168,
                 listStartY - 14,
-                0xFFFFFF
+                COLOR_YELLOW
         );
 
         if (presets.isEmpty()) {
@@ -228,7 +255,7 @@ public class CreatePresetScreen extends Screen {
                     Text.literal("No presets saved yet. Click \"+ New Preset\" above!").formatted(Formatting.GRAY),
                     centerX,
                     listStartY + 40,
-                    0x888888
+                    COLOR_GRAY
             );
         } else {
             int startIndex = page * ITEMS_PER_PAGE;
@@ -239,16 +266,11 @@ public class CreatePresetScreen extends Screen {
                 int slot = i - startIndex;
                 int rowY = listStartY + slot * 34;
 
-                // Card background
-                boolean isHovered = mouseX >= centerX - 170 && mouseX <= centerX + 170 && mouseY >= rowY && mouseY <= rowY + 30;
-                int bgColor = isHovered ? 0x77333333 : 0x55000000;
-                context.fill(centerX - 170, rowY, centerX + 170, rowY + 30, bgColor);
-
                 // Preset Name + Count
                 int count = preset.getPacks() != null ? preset.getPacks().size() : 0;
                 Text nameText = Text.literal("✦ " + preset.getName()).formatted(Formatting.WHITE, Formatting.BOLD)
                         .append(Text.literal(" (" + count + " packs)").formatted(Formatting.AQUA));
-                drawLeftAlignedText(context, nameText, centerX - 164, rowY + 4, 0xFFFFFF);
+                drawLeftAlignedText(context, nameText, centerX - 164, rowY + 4, COLOR_WHITE);
 
                 // Packs Preview List
                 String packsPreview = getPacksPreview(preset);
@@ -257,7 +279,7 @@ public class CreatePresetScreen extends Screen {
                         Text.literal(packsPreview).formatted(Formatting.GRAY),
                         centerX - 164,
                         rowY + 16,
-                        0x888888
+                        COLOR_DARK_GRAY
                 );
             }
 
@@ -265,11 +287,9 @@ public class CreatePresetScreen extends Screen {
             if (totalPages > 1) {
                 int navY = listStartY + ITEMS_PER_PAGE * 34 + 2;
                 String pageText = (page + 1) + " / " + totalPages;
-                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(pageText).formatted(Formatting.WHITE), centerX - 12, navY + 4, 0xFFFFFF);
+                context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(pageText).formatted(Formatting.WHITE), centerX - 12, navY + 4, COLOR_WHITE);
             }
         }
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     private String getPacksPreview(Preset preset) {
