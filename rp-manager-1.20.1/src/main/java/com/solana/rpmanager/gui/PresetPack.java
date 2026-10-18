@@ -3,7 +3,6 @@ package com.solana.rpmanager.gui;
 import com.solana.rpmanager.mixin.ResourcePackOrganizerAccessor;
 import com.solana.rpmanager.model.Preset;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.pack.PackScreen;
 import net.minecraft.client.gui.screen.pack.ResourcePackOrganizer;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.resource.ResourcePackCompatibility;
@@ -20,22 +19,16 @@ import java.util.List;
 public class PresetPack implements ResourcePackOrganizer.Pack {
     private static final Identifier ICON = new Identifier("rpmanager", "textures/gui/preset_icon.png");
 
-    private final PackScreen screen;
     private final ResourcePackOrganizer organizer;
     private final Preset preset;
 
-    public PresetPack(PackScreen screen, ResourcePackOrganizer organizer, Preset preset) {
-        this.screen = screen;
+    public PresetPack(ResourcePackOrganizer organizer, Preset preset) {
         this.organizer = organizer;
         this.preset = preset;
     }
 
     public Preset getPreset() {
         return preset;
-    }
-
-    public PackScreen getScreen() {
-        return screen;
     }
 
     @Override
@@ -170,9 +163,7 @@ public class PresetPack implements ResourcePackOrganizer.Pack {
         }
 
         // 5. Trigger refresh callback to update the screen lists
-        if (accessor.getUpdateCallback() != null) {
-            accessor.getUpdateCallback().run();
-        }
+        organizer.refresh();
 
         // 6. If there were missing packs, show a warning toast
         if (!missingPacks.isEmpty()) {

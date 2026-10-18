@@ -1,8 +1,8 @@
 package com.solana.rpmanager.gui;
 
 import com.solana.rpmanager.manager.PresetManager;
-import com.solana.rpmanager.mixin.PackScreenAccessor;
 import com.solana.rpmanager.mixin.ResourcePackOrganizerAccessor;
+import com.solana.rpmanager.model.Preset;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.pack.PackScreen;
@@ -25,11 +25,10 @@ public class CreatePresetScreen extends Screen {
     private final List<String> packsToSave = new ArrayList<>();
 
     public CreatePresetScreen(PackScreen parent, ResourcePackOrganizer organizer) {
-        super(Text.literal("Создать заготовку ресурспаков"));
+        super(Text.literal("Управление заготовками ресурспаков"));
         this.parent = parent;
         this.organizer = organizer;
 
-        // Gather currently active packs
         ResourcePackOrganizerAccessor accessor = (ResourcePackOrganizerAccessor) organizer;
         for (ResourcePackProfile profile : accessor.getEnabledPacks()) {
             packsToSave.add(profile.getName());
@@ -39,30 +38,51 @@ public class CreatePresetScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        int centerY = this.height / 2;
+        int topY = 40;
 
         this.nameField = new TextFieldWidget(
                 this.textRenderer,
-                centerX - 120,
-                centerY - 20,
-                240,
+                centerX - 150,
+                topY,
+                210,
                 20,
                 Text.literal("Имя заготовки")
         );
-        this.nameField.setMaxLength(50);
+        this.nameField.setMaxLength(40);
         this.nameField.setChangedListener(text -> updateSaveButtonState());
-        this.addSelectableChild(this.nameField);
+        this.addDrawableChild(this.nameField);
         this.setInitialFocus(this.nameField);
 
         this.saveButton = ButtonWidget.builder(Text.literal("Сохранить"), button -> save())
-                .dimensions(centerX - 122, centerY + 20, 118, 20)
+                .dimensions(centerX + 65, topY, 85, 20)
                 .build();
         this.addDrawableChild(this.saveButton);
 
-        ButtonWidget cancelButton = ButtonWidget.builder(ScreenTexts.CANCEL, button -> close())
-                .dimensions(centerX + 4, centerY + 20, 118, 20)
+        // List existing presets with delete buttons
+        List<Preset> presets = PresetManager.getInstance().getPresets();
+        int listStartY = topY + 45;
+        int maxVisible = Math.min(presets.size(), 6);
+
+        for (int i = 0; i < maxVisible; i++) {
+            Preset preset = presets.get(i);
+            int rowY = listStartY + i * 24;
+
+            ButtonWidget deleteBtn = ButtonWidget.builder(
+                    Text.literal("✕").formatted(Formatting.RED),
+                    button -> {
+                        PresetManager.getInstance().deletePreset(preset);
+                        organizer.refresh();
+                        this.clearAndInit();
+                    }
+            ).dimensions(centerX + 125, rowY, 24, 20).build();
+            this.addDrawableChild(deleteBtn);
+        }
+
+        // Cancel / Back button at the bottom
+        ButtonWidget backButton = ButtonWidget.builder(ScreenTexts.BACK, button -> close())
+                .dimensions(centerX - 75, this.height - 30, 150, 20)
                 .build();
-        this.addDrawableChild(cancelButton);
+        this.addDrawableChild(backButton);
 
         updateSaveButtonState();
     }
@@ -78,7 +98,7 @@ public class CreatePresetScreen extends Screen {
         String name = this.nameField.getText().trim();
         if (!name.isEmpty()) {
             PresetManager.getInstance().savePreset(name, packsToSave);
-            ((PackScreenAccessor) parent).invokeUpdatePackLists();
+            organizer.refresh();
             close();
         }
     }
@@ -95,21 +115,56 @@ public class CreatePresetScreen extends Screen {
         this.renderBackground(context);
 
         int centerX = this.width / 2;
-        int centerY = this.height / 2;
 
         context.drawCenteredTextWithShadow(
                 this.textRenderer,
                 this.title.copy().formatted(Formatting.GOLD, Formatting.BOLD),
                 centerX,
-                centerY - 60,
+                12,
                 0xFFFFFF
         );
 
-        Text info = Text.literal("Будет сохранено активных ресурспаков: " + packsToSave.size())
+        Text info = Text.literal("Активных паков для новой заготовки: " + packsToSave.size())
                 .formatted(Formatting.GRAY);
-        context.drawCenteredTextWithShadow(this.textRenderer, info, centerX, centerY - 45, 0xAAAAAA);
+        context.drawCenteredTextWithShadow(this.textRenderer, info, centerX, 26, 0xAAAAAA);
 
-        this.nameField.render(context, mouseX, mouseY, delta);
+        List<Preset> presets = PresetManager.getInstance().getPresets();
+        int listStartY = 85;
+        if (!presets.isEmpty()) {
+            context.drawTextWithShadow(
+                    this.textRenderer,
+                    Text.literal("Сохранённые заготовки:").formatted(Formatting.YELLOW),
+                    centerX - 150,
+                    listStartY - 12,
+                    0xFFFFFF
+            );
+
+            int maxVisible = Math.min(presets.size(), 6);
+            for (int i = 0; i < maxVisible; i++) {
+                Preset preset = presets.get(i);
+                int rowY = listStartY + i * 24;
+
+                context.fill(centerX - 150, rowY, centerX + 120, rowY + 20, 0x66000000);
+
+                context.drawTextWithShadow(
+                        this.textRenderer,
+                        Text.literal("✦ " + preset.getName()).formatted(Formatting.WHITE),
+                        centerX - 144,
+                        rowY + 6,
+                        0xFFFFFF
+                );
+
+                int count = preset.getPacks() != null ? preset.getPacks().size() : 0;
+                context.drawTextWithShadow(
+                        this.textRenderer,
+                        Text.literal(count + " пак.").formatted(Formatting.AQUA),
+                        centerX + 70,
+                        rowY + 6,
+                        0xAAAAAA
+                );
+            }
+        }
+
         super.render(context, mouseX, mouseY, delta);
     }
 }

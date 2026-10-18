@@ -4,9 +4,9 @@
   "package": "com.solana.rpmanager.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "PackScreenAccessor",
     "PackScreenMixin",
-    "ResourcePackOrganizerAccessor"
+    "ResourcePackOrganizerAccessor",
+    "ResourcePackOrganizerMixin"
   ],
   "client": [],
   "injectors": {
