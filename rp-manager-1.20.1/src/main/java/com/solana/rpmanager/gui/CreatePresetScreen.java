@@ -43,10 +43,11 @@ public class CreatePresetScreen extends Screen {
 
     private void updateActivePacks() {
         activePackIds.clear();
-        ResourcePackOrganizerAccessor accessor = (ResourcePackOrganizerAccessor) organizer;
-        for (ResourcePackProfile profile : accessor.getEnabledPacks()) {
-            activePackIds.add(profile.getName());
-        }
+        organizer.getEnabledPacks().forEach(pack -> {
+            if (PresetEditorScreen.isUserResourcePack(pack)) {
+                activePackIds.add(pack.getName());
+            }
+        });
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.solana.rpmanager.gui;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.solana.rpmanager.manager.PresetManager;
-import com.solana.rpmanager.mixin.ResourcePackOrganizerAccessor;
 import com.solana.rpmanager.model.Preset;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -10,11 +10,12 @@ import net.minecraft.client.gui.screen.pack.ResourcePackOrganizer;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.toast.SystemToast;
-import net.minecraft.resource.ResourcePackProfile;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,6 +30,20 @@ public class PresetEditorScreen extends Screen {
     private static final int COLOR_DARK_GRAY = 0xFF777777;
     private static final int COLOR_AQUA = 0xFF55FFFF;
 
+    public static class PackEntry {
+        public final String id;
+        public final Text displayName;
+        public final Identifier iconId;
+        public final boolean active;
+
+        public PackEntry(String id, Text displayName, Identifier iconId, boolean active) {
+            this.id = id;
+            this.displayName = displayName;
+            this.iconId = iconId;
+            this.active = active;
+        }
+    }
+
     private final Screen parent;
     private final ResourcePackOrganizer organizer;
     private final Preset presetToEdit;
@@ -38,7 +53,7 @@ public class PresetEditorScreen extends Screen {
     private ButtonWidget saveButton;
 
     private final Set<String> selectedPackIds = new LinkedHashSet<>();
-    private final List<ResourcePackProfile> allProfiles = new ArrayList<>();
+    private final List<PackEntry> allPacks = new ArrayList<>();
     private final Set<String> activePackIds = new LinkedHashSet<>();
 
     private int page = 0;
@@ -56,22 +71,43 @@ public class PresetEditorScreen extends Screen {
         }
     }
 
+    public static boolean isUserResourcePack(ResourcePackOrganizer.Pack pack) {
+        if (pack == null) return false;
+        String name = pack.getName();
+        if (name == null) return false;
+        if (name.startsWith("file/")) return true;
+        if (name.equals("programmer_art") || name.equals("high_contrast")) return true;
+        if (name.equals("vanilla") || name.startsWith("fabric") || name.startsWith("mod/") || name.startsWith("builtin/")) {
+            return false;
+        }
+        return !pack.isAlwaysEnabled() && !pack.isPinned();
+    }
+
     private void loadProfiles() {
-        allProfiles.clear();
+        allPacks.clear();
         activePackIds.clear();
 
-        ResourcePackOrganizerAccessor accessor = (ResourcePackOrganizerAccessor) organizer;
-        for (ResourcePackProfile p : accessor.getEnabledPacks()) {
-            activePackIds.add(p.getName());
-        }
+        Set<String> seen = new HashSet<>();
 
-        allProfiles.addAll(accessor.getResourcePackManager().getProfiles());
+        // 1. Add active/enabled packs
+        organizer.getEnabledPacks().forEach(pack -> {
+            if (isUserResourcePack(pack) && seen.add(pack.getName())) {
+                activePackIds.add(pack.getName());
+                allPacks.add(new PackEntry(pack.getName(), pack.getDisplayName(), pack.getIconId(), true));
+            }
+        });
+
+        // 2. Add available/disabled packs
+        organizer.getDisabledPacks().forEach(pack -> {
+            if (isUserResourcePack(pack) && seen.add(pack.getName())) {
+                allPacks.add(new PackEntry(pack.getName(), pack.getDisplayName(), pack.getIconId(), false));
+            }
+        });
+
         // Sort: active packs first, then alphabetically by display name
-        allProfiles.sort((a, b) -> {
-            boolean aActive = activePackIds.contains(a.getName());
-            boolean bActive = activePackIds.contains(b.getName());
-            if (aActive != bActive) return aActive ? -1 : 1;
-            return a.getDisplayName().getString().compareToIgnoreCase(b.getDisplayName().getString());
+        allPacks.sort((a, b) -> {
+            if (a.active != b.active) return a.active ? -1 : 1;
+            return a.displayName.getString().compareToIgnoreCase(b.displayName.getString());
         });
     }
 
@@ -133,7 +169,7 @@ public class PresetEditorScreen extends Screen {
         this.addDrawableChild(clearBtn);
 
         // Filtered pack list
-        List<ResourcePackProfile> filtered = getFilteredProfiles();
+        List<PackEntry> filtered = getFilteredProfiles();
         int totalPages = Math.max(1, (int) Math.ceil((double) filtered.size() / PACKS_PER_PAGE));
         if (page >= totalPages) page = totalPages - 1;
         if (page < 0) page = 0;
@@ -143,23 +179,15 @@ public class PresetEditorScreen extends Screen {
         int listStartY = 80;
 
         for (int i = startIndex; i < endIndex; i++) {
-            ResourcePackProfile profile = filtered.get(i);
+            PackEntry entry = filtered.get(i);
             int slot = i - startIndex;
             int rowY = listStartY + slot * 32;
-            String packId = profile.getName();
-            boolean isSelected = selectedPackIds.contains(packId);
+            boolean isSelected = selectedPackIds.contains(entry.id);
 
             // Checkbox button [✓] or [+]
             ButtonWidget toggleBtn = ButtonWidget.builder(
                     Text.literal(isSelected ? "✓" : "+").formatted(isSelected ? Formatting.GREEN : Formatting.GRAY),
-                    button -> {
-                        if (selectedPackIds.contains(packId)) {
-                            selectedPackIds.remove(packId);
-                        } else {
-                            selectedPackIds.add(packId);
-                        }
-                        this.clearAndInit();
-                    }
+                    button -> togglePack(entry.id)
             ).dimensions(centerX - 168, rowY + 5, 22, 20).build();
             this.addDrawableChild(toggleBtn);
         }
@@ -202,12 +230,44 @@ public class PresetEditorScreen extends Screen {
         updateSaveButtonState();
     }
 
-    private List<ResourcePackProfile> getFilteredProfiles() {
-        if (currentSearch.isEmpty()) return allProfiles;
-        List<ResourcePackProfile> result = new ArrayList<>();
-        for (ResourcePackProfile p : allProfiles) {
-            String title = p.getDisplayName().getString().toLowerCase();
-            String id = p.getName().toLowerCase();
+    private void togglePack(String packId) {
+        if (selectedPackIds.contains(packId)) {
+            selectedPackIds.remove(packId);
+        } else {
+            selectedPackIds.add(packId);
+        }
+        updateSaveButtonState();
+        this.clearAndInit();
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            int centerX = this.width / 2;
+            List<PackEntry> filtered = getFilteredProfiles();
+            int startIndex = page * PACKS_PER_PAGE;
+            int endIndex = Math.min(startIndex + PACKS_PER_PAGE, filtered.size());
+            int listStartY = 80;
+
+            for (int i = startIndex; i < endIndex; i++) {
+                int slot = i - startIndex;
+                int rowY = listStartY + slot * 32;
+                if (mouseX >= centerX - 144 && mouseX <= centerX + 170 && mouseY >= rowY && mouseY <= rowY + 30) {
+                    PackEntry entry = filtered.get(i);
+                    togglePack(entry.id);
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private List<PackEntry> getFilteredProfiles() {
+        if (currentSearch.isEmpty()) return allPacks;
+        List<PackEntry> result = new ArrayList<>();
+        for (PackEntry p : allPacks) {
+            String title = p.displayName.getString().toLowerCase();
+            String id = p.id.toLowerCase();
             if (title.contains(currentSearch) || id.contains(currentSearch)) {
                 result.add(p);
             }
@@ -261,17 +321,16 @@ public class PresetEditorScreen extends Screen {
 
     private void renderCardBackgrounds(DrawContext context, int mouseX, int mouseY) {
         int centerX = this.width / 2;
-        List<ResourcePackProfile> filtered = getFilteredProfiles();
+        List<PackEntry> filtered = getFilteredProfiles();
         int startIndex = page * PACKS_PER_PAGE;
         int endIndex = Math.min(startIndex + PACKS_PER_PAGE, filtered.size());
         int listStartY = 80;
 
         for (int i = startIndex; i < endIndex; i++) {
-            ResourcePackProfile profile = filtered.get(i);
+            PackEntry entry = filtered.get(i);
             int slot = i - startIndex;
             int rowY = listStartY + slot * 32;
-            String packId = profile.getName();
-            boolean isSelected = selectedPackIds.contains(packId);
+            boolean isSelected = selectedPackIds.contains(entry.id);
 
             boolean isHovered = mouseX >= centerX - 170 && mouseX <= centerX + 170 && mouseY >= rowY && mouseY <= rowY + 30;
             int bgColor = isSelected ? (isHovered ? 0x771B4B1B : 0x55143414) : (isHovered ? 0x66333333 : 0x44000000);
@@ -292,7 +351,7 @@ public class PresetEditorScreen extends Screen {
         );
 
         // Counter text at top
-        String counterText = "Selected: " + selectedPackIds.size() + " / " + allProfiles.size() + " packs";
+        String counterText = "Selected: " + selectedPackIds.size() + " / " + allPacks.size() + " packs";
         drawLeftAlignedText(
                 context,
                 Text.literal(counterText).formatted(Formatting.YELLOW, Formatting.BOLD),
@@ -301,8 +360,8 @@ public class PresetEditorScreen extends Screen {
                 COLOR_YELLOW
         );
 
-        // Packs list text
-        List<ResourcePackProfile> filtered = getFilteredProfiles();
+        // Packs list text & icons
+        List<PackEntry> filtered = getFilteredProfiles();
         int totalPages = Math.max(1, (int) Math.ceil((double) filtered.size() / PACKS_PER_PAGE));
         int listStartY = 80;
 
@@ -319,24 +378,24 @@ public class PresetEditorScreen extends Screen {
             int endIndex = Math.min(startIndex + PACKS_PER_PAGE, filtered.size());
 
             for (int i = startIndex; i < endIndex; i++) {
-                ResourcePackProfile profile = filtered.get(i);
+                PackEntry entry = filtered.get(i);
                 int slot = i - startIndex;
                 int rowY = listStartY + slot * 32;
-                String packId = profile.getName();
-                boolean isSelected = selectedPackIds.contains(packId);
-                boolean isActive = activePackIds.contains(packId);
+                boolean isSelected = selectedPackIds.contains(entry.id);
 
-                // Display name + Status badge
-                String statusBadge = isActive ? " [Active]" : " [Available]";
-                Formatting badgeColor = isActive ? Formatting.AQUA : Formatting.DARK_GRAY;
+                // 1. Draw Pack Icon (24x24)
+                if (entry.iconId != null) {
+                    RenderSystem.enableBlend();
+                    context.drawTexture(entry.iconId, centerX - 142, rowY + 3, 0.0F, 0.0F, 24, 24, 24, 24);
+                }
 
-                Text titleText = profile.getDisplayName().copy().formatted(isSelected ? Formatting.WHITE : Formatting.GRAY)
-                        .append(Text.literal(statusBadge).formatted(badgeColor));
-                drawLeftAlignedText(context, titleText, centerX - 140, rowY + 4, COLOR_WHITE);
+                // 2. Display Name + Status badge
+                Text titleText = getTruncatedDisplayName(entry, isSelected);
+                drawLeftAlignedText(context, titleText, centerX - 112, rowY + 5, COLOR_WHITE);
 
-                // Clean filename preview
-                String cleanedId = cleanPackId(packId);
-                drawLeftAlignedText(context, Text.literal(cleanedId).formatted(Formatting.DARK_GRAY), centerX - 140, rowY + 16, COLOR_DARK_GRAY);
+                // 3. Clean filename preview
+                String cleanedId = cleanPackId(entry.id);
+                drawLeftAlignedText(context, Text.literal(cleanedId).formatted(Formatting.DARK_GRAY), centerX - 112, rowY + 17, COLOR_DARK_GRAY);
             }
 
             // Pagination indicator
@@ -348,11 +407,23 @@ public class PresetEditorScreen extends Screen {
         }
     }
 
+    private Text getTruncatedDisplayName(PackEntry entry, boolean isSelected) {
+        String name = entry.displayName.getString();
+        if (name.length() > 25) {
+            name = name.substring(0, 23) + "..";
+        }
+        String statusBadge = entry.active ? " [Active]" : " [Available]";
+        Formatting badgeColor = entry.active ? Formatting.AQUA : Formatting.DARK_GRAY;
+
+        return Text.literal(name).formatted(isSelected ? Formatting.WHITE : Formatting.GRAY)
+                .append(Text.literal(statusBadge).formatted(badgeColor));
+    }
+
     private String cleanPackId(String id) {
         if (id.startsWith("file/")) id = id.substring(5);
         if (id.endsWith(".zip")) id = id.substring(0, id.length() - 4);
-        if (id.length() > 46) {
-            id = id.substring(0, 43) + "...";
+        if (id.length() > 36) {
+            id = id.substring(0, 33) + "...";
         }
         return id;
     }
