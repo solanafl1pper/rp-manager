@@ -1,0 +1,17 @@
+modLoader="javafml"
+loaderVersion="[51,)"
+license="MIT"
+
+[[mods]]
+modId="rpmanager"
+version="${version}"
+displayName="Resource Pack Manager"
+description='''Create, manage, and instantly apply resource pack presets right inside Minecraft!'''
+authors="solana"
+
+[[dependencies.rpmanager]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.21,)"
+    ordering="NONE"
+    side="CLIENT"

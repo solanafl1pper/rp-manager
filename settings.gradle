@@ -11,5 +11,8 @@ pluginManagement {
 
 rootProject.name = "rp-manager"
 
+include("rp-manager-1.16.5")
+include("rp-manager-1.18.2")
+include("rp-manager-1.19.2")
 include("rp-manager-1.20.1")
 include("rp-manager-1.21.1")

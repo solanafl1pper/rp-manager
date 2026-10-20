@@ -31,7 +31,9 @@ jobs:
           files: rp-manager-1.21.1/build/libs/rp-manager-fabric-1.21.1-*.jar
           name: RP Manager ${{ github.ref_name }} (1.21.x / 26.3)
           version-type: release
-          loaders: fabric
+          loaders: |
+            fabric
+            quilt
           game-versions: |
             1.21
             1.21.1
@@ -49,7 +51,9 @@ jobs:
           files: rp-manager-1.20.1/build/libs/rp-manager-fabric-1.20.1-*.jar
           name: RP Manager ${{ github.ref_name }} (1.20.x)
           version-type: release
-          loaders: fabric
+          loaders: |
+            fabric
+            quilt
           game-versions: |
             1.20
             1.20.1
@@ -57,3 +61,56 @@ jobs:
             1.20.3
             1.20.4
             1.20.6
+
+      - name: Publish to CurseForge (1.19.x)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: 1752997
+          files: rp-manager-1.19.2/build/libs/rp-manager-fabric-1.19.2-*.jar
+          name: RP Manager ${{ github.ref_name }} (1.19.x)
+          version-type: release
+          loaders: |
+            fabric
+            quilt
+          game-versions: |
+            1.19
+            1.19.1
+            1.19.2
+            1.19.3
+            1.19.4
+
+      - name: Publish to CurseForge (1.18.x)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: 1752997
+          files: rp-manager-1.18.2/build/libs/rp-manager-fabric-1.18.2-*.jar
+          name: RP Manager ${{ github.ref_name }} (1.18.x)
+          version-type: release
+          loaders: |
+            fabric
+            quilt
+          game-versions: |
+            1.18
+            1.18.1
+            1.18.2
+
+      - name: Publish to CurseForge (1.16.x)
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-id: 1752997
+          files: rp-manager-1.16.5/build/libs/rp-manager-fabric-1.16.5-*.jar
+          name: RP Manager ${{ github.ref_name }} (1.16.x)
+          version-type: release
+          loaders: |
+            fabric
+            quilt
+          game-versions: |
+            1.16
+            1.16.1
+            1.16.2
+            1.16.3
+            1.16.4
+            1.16.5

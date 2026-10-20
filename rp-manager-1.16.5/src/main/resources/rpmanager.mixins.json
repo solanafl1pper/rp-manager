@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.solana.rpmanager.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "AbstractPackAccessor",
+    "PackScreenMixin",
+    "ResourcePackOrganizerAccessor",
+    "ResourcePackOrganizerMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
