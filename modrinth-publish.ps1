@@ -1,6 +1,6 @@
 param (
-    [string]$Token = "mrp_6e4sKErfsc4Tj3nUliTkXpLciZyYpnhHEJ2s1HItyTr3HnBuPqjwx3sxSwdU",
-    [string]$ProjectId = "resource-pack-presets"
+    [string]$Token = "mrp_DZxrWfGm1UuoftUbTnBXkiJbIo92wLuwl4gcg3qtm1aj1HPDxT3ojz7BUlMS",
+    [string]$ProjectId = "uRCj67dz"
 )
 
 $baseDir = $PSScriptRoot

@@ -1,6 +1,6 @@
 #!/bin/bash
-TOKEN="${1:-mrp_6e4sKErfsc4Tj3nUliTkXpLciZyYpnhHEJ2s1HItyTr3HnBuPqjwx3sxSwdU}"
-PROJECT_ID="${2:-resource-pack-presets}"
+TOKEN="${1:-mrp_DZxrWfGm1UuoftUbTnBXkiJbIo92wLuwl4gcg3qtm1aj1HPDxT3ojz7BUlMS}"
+PROJECT_ID="${2:-uRCj67dz}"
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Modrinth Publisher for RP Manager v0.0.35"
